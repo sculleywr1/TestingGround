@@ -1,0 +1,75 @@
+@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h1>Chat</h1>
+@if (!isConnected)
+{
+    <p>Connecting...</p>
+}
+<div class="chat-window">
+    @foreach (var msg in messages)
+    {
+        <div class="message @(msg.IsPrivate ? "private" : "public")">
+            <strong>@msg.SenderId</strong> (@msg.Timestamp.ToLocalTime()): @msg.Text
+        </div>
+    }
+</div>
+<input @bind="receiver" placeholder="Recipient Id (blank for all)" />
+<input @bind="message" placeholder="Message" @onkeydown="@(async e => { if (e.Key == "Enter") await SendMessage(); })" />
+<button class="btn btn-primary" @onclick="SendMessage">Send</button>
+
+@code {
+    private HubConnection hubConnection;
+    private List<ChatMessageView> messages = new();
+    private string message = string.Empty;
+    private string receiver = string.Empty;
+
+    private bool isConnected => hubConnection?.State == HubConnectionState.Connected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!authState.User.Identity.IsAuthenticated)
+        {
+            Navigation.NavigateTo("Identity/Account/Login", true);
+            return;
+        }
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
+            .Build();
+
+        hubConnection.On<int, string, string, DateTime>("ReceiveMessage", (id, sender, text, ts) =>
+        {
+            messages.Add(new ChatMessageView { Id = id, SenderId = sender, Text = text, Timestamp = ts, IsPrivate = false });
+            StateHasChanged();
+        });
+
+        hubConnection.On<int, string, string, DateTime>("ReceivePrivateMessage", (id, sender, text, ts) =>
+        {
+            messages.Add(new ChatMessageView { Id = id, SenderId = sender, Text = text, Timestamp = ts, IsPrivate = true });
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(message)) return;
+        await hubConnection.SendAsync("SendMessage", message, string.IsNullOrWhiteSpace(receiver) ? null : receiver);
+        message = string.Empty;
+        receiver = string.Empty;
+    }
+
+    private class ChatMessageView
+    {
+        public int Id { get; set; }
+        public string SenderId { get; set; }
+        public string Text { get; set; }
+        public DateTime Timestamp { get; set; }
+        public bool IsPrivate { get; set; }
+    }
+}
