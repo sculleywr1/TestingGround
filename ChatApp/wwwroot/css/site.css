@@ -1,0 +1,10 @@
+.chat-window {
+    border: 1px solid #ccc;
+    padding: 10px;
+    height: 300px;
+    overflow-y: scroll;
+    margin-bottom: 1rem;
+}
+.message.private {
+    background-color: #eef;
+}
