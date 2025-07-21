@@ -1,0 +1,21 @@
+@inject NavigationManager Navigation
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<AuthorizeView>
+    <Authorized>
+        Hello, @context.User.Identity?.Name!
+        <button class="btn btn-link" @onclick="BeginSignOut">Sign out</button>
+    </Authorized>
+    <NotAuthorized>
+        <a class="btn btn-link" href="Identity/Account/Login">Sign in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private async Task BeginSignOut()
+    {
+        await SignInManager.SignOutAsync();
+        Navigation.NavigateTo("/");
+    }
+}
