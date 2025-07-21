@@ -1,44 +1,71 @@
 @page "/"
 @using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient Http
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<h1>Chat</h1>
-@if (!isConnected)
+@if (string.IsNullOrEmpty(token))
 {
-    <p>Connecting...</p>
+    <h3>Login or Register</h3>
+    <input @bind="email" placeholder="Email" />
+    <input type="password" @bind="password" placeholder="Password" />
+    <button class="btn btn-primary" @onclick="HandleLogin">Login</button>
+    <button class="btn btn-secondary" @onclick="HandleRegister">Register</button>
 }
-<div class="chat-window">
-    @foreach (var msg in messages)
+else
+{
+    <h1>Chat</h1>
+    @if (!isConnected)
     {
-        <div class="message @(msg.IsPrivate ? "private" : "public")">
-            <strong>@msg.SenderId</strong> (@msg.Timestamp.ToLocalTime()): @msg.Text
-        </div>
+        <p>Connecting...</p>
     }
-</div>
-<input @bind="receiver" placeholder="Recipient Id (blank for all)" />
-<input @bind="message" placeholder="Message" @onkeydown="@(async e => { if (e.Key == "Enter") await SendMessage(); })" />
-<button class="btn btn-primary" @onclick="SendMessage">Send</button>
+    <div class="chat-window">
+        @foreach (var msg in messages)
+        {
+            <div class="message @(msg.IsPrivate ? "private" : "public")">
+                <strong>@msg.SenderId</strong> (@msg.Timestamp.ToLocalTime()): @msg.Text
+            </div>
+        }
+    </div>
+    <input @bind="receiver" placeholder="Recipient Id (blank for all)" />
+    <input @bind="message" placeholder="Message" @onkeydown="@(async e => { if (e.Key == "Enter") await SendMessage(); })" />
+    <button class="btn btn-primary" @onclick="SendMessage">Send</button>
+}
 
 @code {
-    private HubConnection hubConnection;
+    private HubConnection? hubConnection;
     private List<ChatMessageView> messages = new();
     private string message = string.Empty;
     private string receiver = string.Empty;
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string token = string.Empty;
 
     private bool isConnected => hubConnection?.State == HubConnectionState.Connected;
 
-    protected override async Task OnInitializedAsync()
+    private async Task HandleLogin()
     {
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        if (!authState.User.Identity.IsAuthenticated)
+        var response = await Http.PostAsJsonAsync("auth/login", new LoginRequest { Email = email, Password = password });
+        if (response.IsSuccessStatusCode)
         {
-            Navigation.NavigateTo("Identity/Account/Login", true);
-            return;
+            var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            token = result?.Token ?? string.Empty;
+            await StartConnection();
         }
+    }
 
+    private async Task HandleRegister()
+    {
+        await Http.PostAsJsonAsync("auth/register", new LoginRequest { Email = email, Password = password });
+        await HandleLogin();
+    }
+
+    private async Task StartConnection()
+    {
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
+            .WithUrl(Navigation.ToAbsoluteUri("/chathub"), options =>
+            {
+                options.AccessTokenProvider = () => Task.FromResult(token);
+            })
             .Build();
 
         hubConnection.On<int, string, string, DateTime>("ReceiveMessage", (id, sender, text, ts) =>
@@ -58,7 +85,7 @@
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(message)) return;
+        if (string.IsNullOrWhiteSpace(message) || hubConnection == null) return;
         await hubConnection.SendAsync("SendMessage", message, string.IsNullOrWhiteSpace(receiver) ? null : receiver);
         message = string.Empty;
         receiver = string.Empty;
@@ -67,9 +94,10 @@
     private class ChatMessageView
     {
         public int Id { get; set; }
-        public string SenderId { get; set; }
-        public string Text { get; set; }
+        public string SenderId { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
         public bool IsPrivate { get; set; }
     }
 }
+
