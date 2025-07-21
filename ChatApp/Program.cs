@@ -1,5 +1,7 @@
 using ChatApp.Data;
 using ChatApp.Hubs;
+using ChatApp.Models;
+using ChatApp.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +18,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.R
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddSignalR();
+builder.Services.AddScoped<ChatService>();
 
 var app = builder.Build();
 

@@ -1,4 +1,4 @@
-namespace ChatApp.Data
+namespace ChatApp.Models
 {
     public class ChatMessage
     {
