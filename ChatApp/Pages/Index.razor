@@ -1,0 +1,30 @@
+@page "/"
+@inject ChatClientService ChatClient
+
+@if (string.IsNullOrEmpty(ChatClient.Token))
+{
+    <h3>Login or Register</h3>
+    <input @bind="Email" placeholder="Email" />
+    <input type="password" @bind="Password" placeholder="Password" />
+    <button class="btn btn-primary" @onclick="Login">Login</button>
+    <button class="btn btn-secondary" @onclick="Register">Register</button>
+}
+else
+{
+    <h1>Chat</h1>
+    @if (!IsConnected)
+    {
+        <p>Connecting...</p>
+    }
+    <div class="chat-window">
+        @foreach (var msg in Messages)
+        {
+            <div class="message @(msg.IsPrivate ? "private" : "public")">
+                <strong>@msg.SenderId</strong> (@msg.Timestamp.ToLocalTime()): @msg.Text
+            </div>
+        }
+    </div>
+    <input @bind="Receiver" placeholder="Recipient Id (blank for all)" />
+    <input @bind="Message" placeholder="Message" @onkeydown="HandleKey" />
+    <button class="btn btn-primary" @onclick="Send">Send</button>
+}

@@ -2,6 +2,7 @@ using ChatApp.Data;
 using ChatApp.Hubs;
 using ChatApp.Models;
 using ChatApp.Services;
+using ChatApp.ClientServices;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -56,6 +57,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddSignalR();
 builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<ChatApp.ClientServices.ChatClientService>();
 
 var app = builder.Build();
 
