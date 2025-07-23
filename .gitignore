@@ -4,4 +4,4 @@
 # User secrets
 *.user
 *.suo
-*.db
+*.db*

@@ -22,7 +22,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager();
 
-var jwtKey = builder.Configuration["JwtKey"] ?? "super_secret_key_12345";
+var jwtKey = builder.Configuration["JwtKey"] ?? "my_super_secret_key_12345678901234567890";
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
