@@ -1,6 +1,7 @@
 using ChatApp.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Net.Http;
 
 namespace ChatApp.ClientServices
 {
@@ -14,15 +15,15 @@ namespace ChatApp.ClientServices
 
         public event Action<ChatMessageView>? MessageReceived;
 
-        public ChatClientService(HttpClient http, NavigationManager navigation)
+        public ChatClientService(IHttpClientFactory factory, NavigationManager navigation)
         {
-            _http = http;
             _navigation = navigation;
+            _http = factory.CreateClient();
         }
 
         public async Task<bool> LoginAsync(string email, string password)
         {
-            var response = await _http.PostAsJsonAsync("auth/login", new LoginRequest { Email = email, Password = password });
+            var response = await _http.PostAsJsonAsync(_navigation.ToAbsoluteUri("auth/login"), new LoginRequest { Email = email, Password = password });
             if (response.IsSuccessStatusCode)
             {
                 var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
@@ -35,7 +36,7 @@ namespace ChatApp.ClientServices
 
         public async Task RegisterAsync(string email, string password)
         {
-            await _http.PostAsJsonAsync("auth/register", new LoginRequest { Email = email, Password = password });
+            await _http.PostAsJsonAsync(_navigation.ToAbsoluteUri("auth/register"), new LoginRequest { Email = email, Password = password });
             await LoginAsync(email, password);
         }
 
