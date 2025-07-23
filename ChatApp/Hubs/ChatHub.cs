@@ -1,4 +1,6 @@
 using ChatApp.Data;
+using ChatApp.Models;
+using ChatApp.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,28 +8,22 @@ namespace ChatApp.Hubs
 {
     public class ChatHub : Hub
     {
-        private readonly ApplicationDbContext _db;
+        private readonly ChatService _chatService;
 
-        public ChatHub(ApplicationDbContext db)
+        public ChatHub(ChatService chatService)
         {
-            _db = db;
+            _chatService = chatService;
         }
 
         public async Task SendMessage(string message, string? receiverId)
         {
-            var senderId = Context.UserIdentifier;
+            var senderId = Context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (senderId == null)
                 return;
 
-            var chatMessage = new ChatMessage
-            {
-                SenderId = senderId,
-                ReceiverId = string.IsNullOrWhiteSpace(receiverId) ? null : receiverId,
-                Message = message
-            };
-
-            _db.Messages.Add(chatMessage);
-            await _db.SaveChangesAsync();
+            var chatMessage = await _chatService.AddMessageAsync(senderId,
+                string.IsNullOrWhiteSpace(receiverId) ? null : receiverId,
+                message);
 
             if (chatMessage.ReceiverId == null)
             {

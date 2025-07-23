@@ -1,7 +1,10 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
+﻿# Ignore build outputs
+**/bin/
+**/obj/
+# User secrets
+*.user
+*.suo
+*.db*
 /.vs/testingground
 /ChatApp/bin/Debug/net8.0
 /ChatApp/obj
